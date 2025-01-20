@@ -8,28 +8,73 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-  <div class="container mt-5">
+  <div class="wrapper">
     <div class="input-container">
       <h2>Enter Your Details</h2>
       <form id="form">
-        <div class="mb-3">
-          <label for="kraPin" class="form-label">KRA PIN</label>
-          <input type="text" class="form-control" id="kraPin" placeholder="Enter your KRA PIN" required>
+        <div class="mb-3 d-flex align-items-center">
+          <label for="kraPin" class="form-label me-2">KRA PIN:    </label>
+          <input type="text" class="form-control me-2" id="kraPin" placeholder="Enter your KRA PIN" required>
+          <input type="file" class="form-control-file" id="kraPinFile" accept=".pdf">
         </div>
-        <div class="mb-3">
-          <label for="policeClearance" class="form-label">Police Clearance No</label>
-          <input type="text" class="form-control" id="policeClearance" placeholder="Enter Police Clearance No" required>
+        <div class="mb-3 d-flex align-items-center">
+          <label for="policeClearance" class="form-label me-2">Police Clearance:</label>
+          <input type="text" class="form-control me-2" id="policeClearance" placeholder="Enter Police Clearance No" required>
+          <input type="file" class="form-control-file" id="policeClearanceFile" accept=".pdf">
         </div>
-        <div class="mb-3">
-          <label for="idNumber" class="form-label">Identification Number</label>
-          <input type="text" class="form-control" id="idNumber" placeholder="Enter ID Number" required>
+        <div class="mb-3 d-flex align-items-center">
+          <label for="idNumber" class="form-label me-2">ID Number:</label>
+          <input type="text" class="form-control me-2" id="idNumber" placeholder="Enter ID Number" required>
         </div>
         <button type="button" class="btn btn-primary w-100" id="submitBtn">Submit</button>
       </form>
     </div>
   </div>
-
   <script>
+    // JavaScript functionality remains unchanged
+    document.getElementById('kraPinFile').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/extract_kra_pin', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+          document.getElementById('kraPin').value = result.kraPin || 'Not found';
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error extracting KRA PIN.');
+        }
+      }
+    });
+
+    document.getElementById('policeClearanceFile').addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+          const response = await fetch('/extract_police_clearance', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const result = await response.json();
+          document.getElementById('policeClearance').value = result.refNo || 'Not found';
+          document.getElementById('idNumber').value = result.idNo || 'Not found';
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error extracting Police Clearance No.');
+        }
+      }
+    });
+
     document.getElementById('submitBtn').addEventListener('click', async () => {
       const kraPin = document.getElementById('kraPin').value;
       const policeClearance = document.getElementById('policeClearance').value;

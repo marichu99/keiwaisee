@@ -1,4 +1,6 @@
 from flask import Flask, render_template, request, jsonify
+from kra_pin_details import extract_taxpayer_details
+from police_clearance_details import extract_clearance_details
 from flask_cors import CORS
 import subprocess
 import os
@@ -42,6 +44,37 @@ def submit():
         return jsonify({"message": "Success", "output": stdout})
     else:
         return jsonify({"message": "Error", "error": stderr}), 500
+    
+@app.route('/extract_kra_pin', methods=['POST'])
+def extract_pin():
+    file = request.files['file']
+    
+    # Temporary save the uploaded file
+    file_path = f"{file.filename}"
+    file.save(file_path)
+
+    # Extract KRA PIN from PDF
+    extracted_kra_pin = extract_taxpayer_details(file_path)["PIN"]
+
+    print(f"the extracted kra pin is {extracted_kra_pin} ")
+
+    return jsonify({"kraPin": extracted_kra_pin})
+
+@app.route('/extract_police_clearance', methods=['POST'])
+def extract_police_clearance():
+    file = request.files['file']
+    
+    # Temporary save the uploaded file
+    file_path = f"{file.filename}"
+    file.save(file_path)
+
+    # Extract KRA PIN from PDF
+    extract_police_clearance = extract_clearance_details(file_path)["Reference Number"]
+    extract_id_number = extract_clearance_details(file_path)["ID Number"]
+
+    print(f"the extracted police clearance is {extract_police_clearance} ")
+
+    return jsonify({"refNo": extract_police_clearance, "idNo":extract_id_number})
 
 @app.route('/test')
 def test_imports():
