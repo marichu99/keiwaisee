@@ -99,7 +99,7 @@ def main():
     print(f"Received inputs - KRA PIN: {kra_pin}, Police Clearance: {police_clearance}, ID Number: {id_number}")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=False, slow_mo=2000)  # 2000ms (1 second) delay per action
         context = browser.new_context(
             accept_downloads=True,
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
