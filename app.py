@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 from kra_pin_details import extract_taxpayer_details
+import mpesa_service
 from police_clearance_details import extract_clearance_details
 from flask_cors import CORS
 import subprocess
@@ -60,6 +61,13 @@ def extract_pin():
 
     return jsonify({"kraPin": extracted_kra_pin})
 
+# Flask routes for testing 
+@app.route("/stkpush/<phone>/<amount>", methods=["GET"])
+def stk_push(phone, amount):
+    mpesa = mpesa_service.MpesaService()
+    response = mpesa.stk_push_simulation(phone, int(amount))
+    return jsonify(response)
+
 @app.route('/extract_police_clearance', methods=['POST'])
 def extract_police_clearance():
     file = request.files['file']
@@ -85,6 +93,20 @@ def test_imports():
         return "All imports work!"
     except ImportError as e:
         return str(e)
+    
+@app.route("/path", methods=["POST"])
+def path():
+    mpesa = mpesa_service.MpesaService()
+    data = request.get_json()
+    checkout_request_id = data.get("checkoutRequestID")
+    token = data.get("token")
+
+    if not checkout_request_id or not token:
+        return jsonify({"error": "Missing required parameters"}), 400
+
+    response = mpesa.path(checkout_request_id, token)
+    return jsonify(response)
+
 
 # Run the Flask app
 if __name__ == '__main__':
