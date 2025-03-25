@@ -20,6 +20,10 @@ def solve_arithmetic_captcha(captcha_image_path):
     num1, operator, num2 = match.groups()
     num1, num2 = int(num1), int(num2)
 
+    print(f"The operator is {operator}")
+    print(f"The num 1 {num1}")
+    print(f"The num2 is {num2}")
+
     if operator == "+":
         return num1 + num2
     elif operator == "-":
