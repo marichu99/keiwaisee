@@ -56,6 +56,49 @@ def authenticate_dci(page, police_clearance, id_number):
         print("Police Clearance is invalid.")
         return "Invalid"
 
+def authenticate_kra_from_app (kra_pin,police_number,id_number):
+    print(f"Received inputs - KRA PIN: {kra_pin}, Police Clearance: {police_number}, ID Number: {id_number}")
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False, slow_mo=2000)  # 2000ms (1 second) delay per action
+        context = browser.new_context(
+            accept_downloads=True,
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
+        )
+        page = context.new_page()
+
+        kra_status = authenticate_kra(page, kra_pin)
+        if "Active" not in kra_status:
+            # retry for kra
+            kra_status = authenticate_kra(page, kra_pin)
+        
+        police_status = authenticate_dci(page, police_number, id_number)
+        if "VALID" not in police_status:
+            # retry for dci
+            police_status = authenticate_dci(page, police_number, id_number)
+
+        status = ""
+        # Final output based on statuses
+        if "Active" in kra_status and "VALID" in police_status:
+            status = "Both KRA PIN and Police Clearance are valid."
+            print(status)
+            return status
+        elif "Active" not in kra_status and "VALID" not in police_status:
+            status = "Both KRA PIN and Police Clearance are invalid."
+            print(status)
+            return status
+        elif "Active" in kra_status:
+            status = "KRA PIN is valid, but Police Clearance is invalid."
+            print(status)
+            return status
+        elif "VALID" in police_status:
+            status = "Police Clearance is valid, but KRA PIN is invalid."
+            print(status)
+            return status
+
+        time.sleep(5)
+        browser.close()
+
 def authenticate_kra(page, kra_pin):
     page.goto("https://itax.kra.go.ke/KRA-Portal/pinChecker.htm", timeout=60000)
     page.fill("#vo\\.pinNo", kra_pin)
@@ -126,5 +169,5 @@ def main():
         time.sleep(5)
         browser.close()
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()

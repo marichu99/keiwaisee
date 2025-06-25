@@ -85,6 +85,12 @@
           });
 
           const result = await response.json();
+          console.log(result)
+          if(result.error){
+            alert(`Error ${result.error}.`);
+            document.getElementById("form").reset();
+            return;
+          }
           resultFieldIds.forEach(({ id, key }) => {
             document.getElementById(id).value = result[key] || 'Not found';
           });
@@ -204,7 +210,9 @@
         });
 
         const result = await response.json();
-        alert(result.message);
+        console.log("The result is ",result)
+        alert(result.success);
+        document.getElementById("form").reset();
       } catch (error) {
         console.error('Error submitting form:', error);
         alert('There was an error submitting the form.');

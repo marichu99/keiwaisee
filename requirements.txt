@@ -5,13 +5,11 @@ bs4
 webdriver_manager
 setuptools
 
-scikit-learn
 typing-extensions
 playwright
 gunicorn
 gitpython
 docx2pdf
-Django>=4.0
 PyPDF2>=3.0
 psycopg2-binary
 # psycopg2>=2.9

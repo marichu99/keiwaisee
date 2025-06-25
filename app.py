@@ -2,10 +2,14 @@ from flask import Flask, render_template, request, jsonify
 from kra_pin_details import extract_taxpayer_details
 import mpesa_service
 from police_clearance_details import extract_clearance_details
+from script import authenticate_kra_from_app
 from flask_cors import CORS
 import subprocess
+from dotenv import load_dotenv
 import os
 import sys
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
@@ -23,43 +27,61 @@ def submit():
     police_clearance = data.get('policeClearance')
     id_number = data.get('idNumber')
 
-    print(sys.executable)
-    print(sys.path)
+    res = authenticate_kra_from_app(kra_pin=kra_pin,police_number=police_clearance,id_number=id_number)
+
+    print(f"the res is {res}")
+    return jsonify({
+        "success":res
+    })
 
 
-    # Run the Playwright script as a subprocess
-    env = os.environ.copy()
-    env['PYTHONPATH'] = 'C:\\Users\\h\\Documents\\Projects\\keiwaisee\\myenv\\lib\\site-packages'
+    # print(sys.executable)
+    # print(sys.path)
 
-    process = subprocess.Popen(
-        ["python", "script.py", kra_pin, police_clearance, id_number],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        env=env
-    )
-    stdout, stderr = process.communicate()
+
+    # # Run the Playwright script as a subprocess
+    # env = os.environ.copy()
+    # env['PYTHONPATH'] = os.getenv("PYTHON_EXECUTABLE", sys.executable)  
+
+    # process = subprocess.Popen(
+    #     ["python", "script.py", kra_pin, police_clearance, id_number],
+    #     stdout=subprocess.PIPE,
+    #     stderr=subprocess.PIPE,
+    #     text=True,
+    #     env=env
+    # )
+    # stdout, stderr = process.communicate()
 
     # Return the output back to the client
-    if process.returncode == 0:
-        return jsonify({"message": "Success", "output": stdout})
-    else:
-        return jsonify({"message": "Error", "error": stderr}), 500
+    # if process.returncode == 0:
+    #     return jsonify({"message": "Success", "output": stdout})
+    # else:
+    #     return jsonify({"message": "Error", "error": stderr}), 500
     
 @app.route('/extract_kra_pin', methods=['POST'])
 def extract_pin():
     file = request.files['file']
     
-    # Temporary save the uploaded file
-    file_path = f"{file.filename}"
+    file_path = file.filename
     file.save(file_path)
 
-    # Extract KRA PIN from PDF
-    extracted_kra_pin = extract_taxpayer_details(file_path)["PIN"]
+    try:
+        extracted_details = extract_taxpayer_details(file_path)
 
-    print(f"the extracted kra pin is {extracted_kra_pin} ")
+        if "error" in extracted_details:
+            return jsonify({"error": extracted_details["error"]})
 
-    return jsonify({"kraPin": extracted_kra_pin})
+        print(f"the extracted kra pin is {extracted_details['PIN']}")
+
+        return jsonify({
+            "kraPin": extracted_details["PIN"],
+            "taxpayerName": extracted_details["Taxpayer Name"],
+            "email": extracted_details["Email Address"]
+        })
+
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
 # Flask routes for testing 
 @app.route("/stkpush/<phone>/<amount>", methods=["GET"])
@@ -77,6 +99,11 @@ def extract_police_clearance():
     file.save(file_path)
 
     # Extract KRA PIN from PDF
+    extracted_details = extract_clearance_details(file_path)
+
+    if "error" in extracted_details:
+        return jsonify({"error": extracted_details["error"]})
+    
     extract_police_clearance = extract_clearance_details(file_path)["Reference Number"]
     extract_id_number = extract_clearance_details(file_path)["ID Number"]
 
@@ -110,4 +137,5 @@ def path():
 
 # Run the Flask app
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=False, host='0.0.0.0', port=5000)
+
