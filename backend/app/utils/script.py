@@ -138,11 +138,6 @@ def main():
     police_clearance = sys.argv[2]
     id_number = sys.argv[3]
 
-    #kra_pin="A013757674Z"
-    #police_clearance="PCC-PKSK77EQ7"
-    #id_number="38200598"
-
-
     print(f"Received inputs - KRA PIN: {kra_pin}, Police Clearance: {police_clearance}, ID Number: {id_number}")
 
     with sync_playwright() as p:
