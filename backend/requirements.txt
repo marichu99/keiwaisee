@@ -6,6 +6,7 @@ webdriver_manager
 setuptools
 
 typing-extensions
+Flask-SQLAlchemy
 playwright
 gunicorn
 gitpython

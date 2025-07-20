@@ -34,29 +34,6 @@ def submit():
         "success":res
     })
 
-
-    # print(sys.executable)
-    # print(sys.path)
-
-
-    # # Run the Playwright script as a subprocess
-    # env = os.environ.copy()
-    # env['PYTHONPATH'] = os.getenv("PYTHON_EXECUTABLE", sys.executable)  
-
-    # process = subprocess.Popen(
-    #     ["python", "script.py", kra_pin, police_clearance, id_number],
-    #     stdout=subprocess.PIPE,
-    #     stderr=subprocess.PIPE,
-    #     text=True,
-    #     env=env
-    # )
-    # stdout, stderr = process.communicate()
-
-    # Return the output back to the client
-    # if process.returncode == 0:
-    #     return jsonify({"message": "Success", "output": stdout})
-    # else:
-    #     return jsonify({"message": "Error", "error": stderr}), 500
     
 @app.route('/extract_kra_pin', methods=['POST'])
 def extract_pin():
