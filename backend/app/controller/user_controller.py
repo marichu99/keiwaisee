@@ -53,17 +53,17 @@ def create_user():
 
     # Parse date_of_birth if provided
     date_of_birth = None
-    if data.get('date_of_birth'):
+    if data.get('dateOfBirth'):
         try:
-            date_of_birth = datetime.fromisoformat(data['date_of_birth']).date()
+            date_of_birth = datetime.fromisoformat(data['dateOfBirth']).date()
         except ValueError:
-            return jsonify({'error': 'Invalid date_of_birth format. Use YYYY-MM-DD'}), 400
+            return jsonify({'error': 'Invalid dateOfBirth format. Use YYYY-MM-DD'}), 400
 
     user = User(
         username=data['username'],
         email=data['email'],
         password=data['password'],
-        phone_number=data.get('phone_number'),
+        phone_number=data.get('phoneNumber'),
         date_of_birth=date_of_birth
     )
     db.session.add(user)
