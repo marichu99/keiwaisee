@@ -3,8 +3,11 @@ from app.utils.mpesa_service import MpesaService
 
 mpesa_bp = Blueprint('mpesa', __name__)
 
-@mpesa_bp.route('/stkpush/<phone>/<amount>', methods=['GET'])
-def stk_push(phone, amount):
+@mpesa_bp.route('/stkpush', methods=['POST'])
+def stkpush():
+    data = request.get_json()
+    phone = data.get('phone_number')
+    amount = data.get('amount')
     mpesa = MpesaService()
     response = mpesa.stk_push_simulation(phone, int(amount))
     return jsonify(response)

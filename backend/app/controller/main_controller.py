@@ -60,13 +60,6 @@ def extract_pin():
         if os.path.exists(file_path):
             os.remove(file_path)
 
-# Flask routes for testing 
-@app.route("/stkpush/<phone>/<amount>", methods=["GET"])
-def stk_push(phone, amount):
-    mpesa = mpesa_service.MpesaService()
-    response = mpesa.stk_push_simulation(phone, int(amount))
-    return jsonify(response)
-
 @app.route('/extract_police_clearance', methods=['POST'])
 def extract_police_clearance():
     file = request.files['file']

@@ -35,7 +35,7 @@ def create_app():
     from app.controller.document_controller import document_bp
     from app.controller.mpesa_controller import mpesa_bp
     app.register_blueprint(user_bp, url_prefix='/users')
-    app.register_blueprint(document_bp, url_prefix='/documents')
+    app.register_blueprint(document_bp, url_prefix='/document')
     app.register_blueprint(mpesa_bp, url_prefix='/mpesa')
 
     return app

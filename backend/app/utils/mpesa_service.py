@@ -20,8 +20,10 @@ class MpesaService:
 
     def authenticate(self):
         """Authenticate with Safaricom API and return an access token."""
+        print("we are now authenticating >>>>>>>")
         encoded_key = base64.b64encode(self.app_key_secret.encode()).decode()
         url = f"{self.api_url}/oauth/v1/generate?grant_type=client_credentials"
+        print(f"The url is {url}")        
 
         headers = {"Authorization": f"Basic {encoded_key}"}
         response = requests.get(url, headers=headers, verify=False)
@@ -62,11 +64,14 @@ class MpesaService:
         response = requests.post(url, json=payload, headers=headers)
 
         response_data = response.json()
+        print(f"the response data obtained is {response_data}")
         checkout_request_id = response_data.get("CheckoutRequestID")
 
         if checkout_request_id:
             time.sleep(8)
             success = self.call_path_recursively(checkout_request_id, token)
+            print(f"The transaction sucess {success}")
+            print(f"The transaction sucess {int(success)}")
             if(int(success) == 0):
                 return "Transaction completed successfully."
             else:
@@ -80,12 +85,15 @@ class MpesaService:
         response = self.path(checkout_request_id, token)
 
         error_code = response.get("errorCode")
+        print(f"The error code is {error_code}")
+        print(f"The response is {response}")
         if error_code:
             self.call_path_recursively(checkout_request_id, token)
 
         result_code = response.get("ResultCode")
         result_desc = response.get("ResultDesc", "Unknown error")
 
+        print(f"The result_code is {result_code}")
         if result_code == "0":
             print("Transaction completed successfully.")
             return result_code
