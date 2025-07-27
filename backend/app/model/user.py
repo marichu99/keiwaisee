@@ -1,5 +1,5 @@
 from app import db, bcrypt
-from datetime import date
+from datetime import date,datetime
 
 class User(db.Model):
     __tablename__ = 'users'

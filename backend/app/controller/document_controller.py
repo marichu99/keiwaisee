@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request
 from app.utils.kra_pin_details import extract_taxpayer_details
+from app.model.payment import Payment
 from app.utils.police_clearance_details import extract_clearance_details
+from app.utils.user_service import UserService
 from app.utils.script import authenticate_kra_from_app
 import os
 
@@ -56,6 +58,17 @@ def extract_police_clearance():
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
+
+@document_bp.route('/get-kyc', methods=['GET'])
+def get_kyc():
+    payments = Payment.query.all()
+    return jsonify([{
+        'id': payment.id,
+        'reference_code': payment.reference_code,
+        'phone_number': payment.phone_number,
+        'user_name': UserService.get_user_by_id(user_id=payment.user_id).username,
+        'time_paid': payment.time_paid.isoformat() if payment.time_paid else None
+    } for payment in payments])
 
 @document_bp.route('/test', methods=['GET'])
 def test_imports():

@@ -4,6 +4,8 @@ import utils.mpesa_service as mpesa_service
 from utils.police_clearance_details import extract_clearance_details
 from backend.app.utils.script import authenticate_kra_from_app
 from flask_cors import CORS
+from app.model.payment import Payment
+from app.model.user import User
 import subprocess
 from dotenv import load_dotenv
 import os
@@ -103,7 +105,6 @@ def path():
 
     response = mpesa.path(checkout_request_id, token)
     return jsonify(response)
-
 
 # Run the Flask app
 if __name__ == '__main__':

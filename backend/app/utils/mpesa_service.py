@@ -3,7 +3,11 @@ import base64
 import time
 import requests
 from flask import Flask, jsonify
+from flask_jwt_extended import get_jwt_identity,jwt_required
 from dotenv import load_dotenv
+from app.model.payment import Payment
+from app import db
+import uuid
 
 # Load environment variables
 load_dotenv()
@@ -38,7 +42,7 @@ class MpesaService:
         password_str = f"{self.shortcode}{self.passkey}{timestamp}"
         return base64.b64encode(password_str.encode()).decode()
 
-    def stk_push_simulation(self, phone_number, amount):
+    def stk_push_simulation(self, phone_number, amount,user_id):
         """Initiate an STK Push request."""
         token = self.authenticate()
         url = f"{self.api_url}/mpesa/stkpush/v1/processrequest"
@@ -69,7 +73,7 @@ class MpesaService:
 
         if checkout_request_id:
             time.sleep(8)
-            success = self.call_path_recursively(checkout_request_id, token)
+            success = self.call_path_recursively(checkout_request_id, token,phone_number,amount,user_id)
             print(f"The transaction sucess {success}")
             print(f"The transaction sucess {int(success)}")
             if(int(success) == 0):
@@ -79,26 +83,43 @@ class MpesaService:
 
         return response_data
 
-    def call_path_recursively(self, checkout_request_id, token):
+    def call_path_recursively(self, checkout_request_id, token,phone_number,amount,user_id):
         """Check STK push status recursively until completed."""
         time.sleep(3)
         response = self.path(checkout_request_id, token)
 
         error_code = response.get("errorCode")
-        print(f"The error code is {error_code}")
-        print(f"The response is {response}")
         if error_code:
             self.call_path_recursively(checkout_request_id, token)
 
         result_code = response.get("ResultCode")
         result_desc = response.get("ResultDesc", "Unknown error")
 
-        print(f"The result_code is {result_code}")
+        print(f"The result obtained is {response}")
+
         if result_code == "0":
             print("Transaction completed successfully.")
+            payment = Payment(
+                user_id=user_id,
+                phone_number=phone_number,
+                amount=amount,    
+                result_desc=result_desc,    
+                reference_code=f"PAY-{uuid.uuid4().hex[:10].upper()}"
+            )
+            db.session.add(payment)
+            db.session.commit()
             return result_code
         else:
             print(f"Transaction failed: {result_desc}")
+            payment = Payment(
+                user_id=user_id,
+                phone_number=phone_number,
+                amount=amount,    
+                result_desc=result_desc,    
+                reference_code=f"PAY-FAILED"
+            )
+            db.session.add(payment)
+            db.session.commit()
             return result_code
 
     def path(self, checkout_request_id, token):
