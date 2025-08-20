@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright
 from PIL import Image
+from app import db
+from app.model.document import Document
 import pytesseract
 import re
 import sys
@@ -31,7 +33,7 @@ def solve_arithmetic_captcha(captcha_image_path):
     elif operator == "*":
         return num1 * num2
     elif operator == "/":
-        return num1 // num2  # Integer division
+        return num1 // num2 
     else:
         raise ValueError("Unsupported operator")
 
@@ -56,7 +58,7 @@ def authenticate_dci(page, police_clearance, id_number):
         print("Police Clearance is invalid.")
         return "Invalid"
 
-def authenticate_kra_from_app (kra_pin,police_number,id_number):
+def authenticate_kra_from_app (kra_pin,police_number,id_number,tax_payer_name):
     print(f"Received inputs - KRA PIN: {kra_pin}, Police Clearance: {police_number}, ID Number: {id_number}")
 
     with sync_playwright() as p:
@@ -80,21 +82,36 @@ def authenticate_kra_from_app (kra_pin,police_number,id_number):
         status = ""
         # Final output based on statuses
         if "Active" in kra_status and "VALID" in police_status:
-            status = "Both KRA PIN and Police Clearance are valid."
+            status = rf"Both KRA PIN and Police Clearance are valid for {tax_payer_name}."
+            authenticated=True
             print(status)
             return status
         elif "Active" not in kra_status and "VALID" not in police_status:
             status = "Both KRA PIN and Police Clearance are invalid."
+            authenticated=False
             print(status)
             return status
         elif "Active" in kra_status:
             status = "KRA PIN is valid, but Police Clearance is invalid."
+            authenticated=False
             print(status)
             return status
         elif "VALID" in police_status:
             status = "Police Clearance is valid, but KRA PIN is invalid."
+            authenticated=False
             print(status)
             return status
+        
+        document = Document(
+        kra_pin=kra_pin,
+        taxpayer_name=tax_payer_name,
+        police_clearance_ref=police_number,
+        id_number=id_number,
+        auth_reason=status,
+        authenticated=authenticated
+        )
+        db.session.add(document)
+        db.session.commit()
 
         time.sleep(5)
         browser.close()
@@ -128,41 +145,3 @@ def authenticate_kra(page, kra_pin):
         print("KRA PIN is invalid.")
         return "Invalid"
 
-def main():
-    # Read inputs from the command line arguments
-    if len(sys.argv) < 4:
-        print("Usage: python playwright_script.py <kra_pin> <police_clearance> <id_number>")
-        sys.exit(1)
-
-    kra_pin = sys.argv[1]
-    police_clearance = sys.argv[2]
-    id_number = sys.argv[3]
-
-    print(f"Received inputs - KRA PIN: {kra_pin}, Police Clearance: {police_clearance}, ID Number: {id_number}")
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, slow_mo=2000)  # 2000ms (1 second) delay per action
-        context = browser.new_context(
-            accept_downloads=True,
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36"
-        )
-        page = context.new_page()
-
-        kra_status = authenticate_kra(page, kra_pin)
-        police_status = authenticate_dci(page, police_clearance, id_number)
-
-        # Final output based on statuses
-        if "Active" in kra_status and "VALID" in police_status:
-            print("Both KRA PIN and Police Clearance are valid.")
-        elif "Active" not in kra_status and "VALID" not in police_status:
-            print("Both KRA PIN and Police Clearance are invalid.")
-        elif "Active" in kra_status:
-            print("KRA PIN is valid, but Police Clearance is invalid.")
-        elif "VALID" in police_status:
-            print("Police Clearance is valid, but KRA PIN is invalid.")
-
-        time.sleep(5)
-        browser.close()
-
-#if __name__ == "__main__":
-#    main()

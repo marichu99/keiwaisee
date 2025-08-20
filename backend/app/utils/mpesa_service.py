@@ -20,7 +20,8 @@ class MpesaService:
         self.app_key_secret = os.getenv("MPESA_APP_KEY_SECRET")
         self.shortcode = os.getenv("MPESA_BUSINESS_SHORTCODE")
         self.passkey = os.getenv("MPESA_PASSKEY")
-        self.callback_url = os.getenv("MPESA_CALLBACK_URL")
+        # self.callback_url = os.getenv("MPESA_CALLBACK_URL")
+        self.callback_url = "https://35248e3220a5.ngrok-free.app/mpesa/callback"
 
     def authenticate(self):
         """Authenticate with Safaricom API and return an access token."""
@@ -34,6 +35,20 @@ class MpesaService:
 
         if response.status_code == 200:
             return response.json().get("access_token")
+        else:
+            raise Exception(f"Error getting access token: {response.text}")
+    
+    def callBackUrl(self):
+        """Authenticate with Safaricom API and return an access token."""
+        callback_url = f"{self.callback_url}"
+        print(f"The url is {callback_url}")        
+
+        response = requests.get(callback_url, verify=False)
+
+        print(f"The response received is {response}")
+        if response.status_code == 200:
+            print(f"The response received is {response.json()}")
+            #return response.json().get("access_token")
         else:
             raise Exception(f"Error getting access token: {response.text}")
 
@@ -72,55 +87,78 @@ class MpesaService:
         checkout_request_id = response_data.get("CheckoutRequestID")
 
         if checkout_request_id:
-            time.sleep(8)
-            success = self.call_path_recursively(checkout_request_id, token,phone_number,amount,user_id)
-            print(f"The transaction sucess {success}")
-            print(f"The transaction sucess {int(success)}")
-            if(int(success) == 0):
-                return "Transaction completed successfully."
-            else:
-                return "Transaction failed."
+            time.sleep(9)
+            # success = self.call_path_recursively(checkout_request_id, token, phone_number, amount, user_id)
+            #self.callBackUrl()
+            # print(f"The transaction success: {success}")
+            # if success == 0:
+            #     return "Transaction completed successfully."
+            # else:
+            #     return "Transaction failed."
+
 
         return response_data
 
-    def call_path_recursively(self, checkout_request_id, token,phone_number,amount,user_id):
-        """Check STK push status recursively until completed."""
-        time.sleep(3)
+    def call_path_recursively(self, checkout_request_id, token, phone_number, amount, user_id, retries=5):
+        """Check STK push status recursively with retry limit and delay."""
+        time.sleep(12)  #
+
         response = self.path(checkout_request_id, token)
+        print(f"The result obtained is {response}")
+
+        if not response:
+            print("Empty response.")
+            return 1  
 
         error_code = response.get("errorCode")
         if error_code:
-            self.call_path_recursively(checkout_request_id, token)
+            print(f"API error code: {error_code}")
+            if retries > 0:
+                return self.call_path_recursively(
+                    checkout_request_id, token, phone_number, amount, user_id, retries - 1
+                )
+            else:
+                print("Max retries reached due to errorCode.")
+                return 1
 
         result_code = response.get("ResultCode")
         result_desc = response.get("ResultDesc", "Unknown error")
-
-        print(f"The result obtained is {response}")
 
         if result_code == "0":
             print("Transaction completed successfully.")
             payment = Payment(
                 user_id=user_id,
                 phone_number=phone_number,
-                amount=amount,    
-                result_desc=result_desc,    
+                amount=amount,
+                result_desc=result_desc,
                 reference_code=f"PAY-{uuid.uuid4().hex[:10].upper()}"
             )
             db.session.add(payment)
             db.session.commit()
-            return result_code
+            return 0
+
+        elif result_code == "4999":
+            print("Still under processing.")
+            if retries > 0:
+                return self.call_path_recursively(
+                    checkout_request_id, token, phone_number, amount, user_id, retries - 1
+                )
+            else:
+                print("Max retries reached while processing.")
+                return 1
+
         else:
             print(f"Transaction failed: {result_desc}")
             payment = Payment(
                 user_id=user_id,
                 phone_number=phone_number,
-                amount=amount,    
-                result_desc=result_desc,    
-                reference_code=f"PAY-FAILED"
+                amount=amount,
+                result_desc=result_desc,
+                reference_code="PAY-FAILED"
             )
             db.session.add(payment)
             db.session.commit()
-            return result_code
+            return int(result_code)
 
     def path(self, checkout_request_id, token):
         """Query STK push transaction status."""
@@ -139,8 +177,30 @@ class MpesaService:
         headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
         response = requests.post(url, json=payload, headers=headers)
 
+        print(f"the response by safaricom is {response}")
+
         return response.json()
 
+    def savePayment(self, amount, phone_number, checkout_id, result_code, result_desc, reference_code, time_paid):
+        reference_code = ""
+        if result_code != 0:
+            reference_code= "PAY-FAILED"
+        if reference_code == None:
+            reference_code= "PAY-FAILED"
+
+        payment = Payment(
+            user_id=None,  
+            amount=amount,
+            phone_number=phone_number,  
+            checkout_id=checkout_id,
+            result_code=result_code,
+            result_desc=result_desc,
+            reference_code=reference_code,
+            time_paid=time_paid,
+        )
+        db.session.add(payment)
+        db.session.commit()
+        return payment
 
 
 if __name__ == "__main__":

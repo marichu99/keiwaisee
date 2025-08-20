@@ -13,10 +13,10 @@ def submit():
     data = request.json
     kra_pin = data.get('kraPin')
     police_clearance = data.get('policeClearance')
+    tax_payer_name = data.get('taxPayerName')
     id_number = data.get('idNumber')
 
-    res = authenticate_kra_from_app(kra_pin=kra_pin, police_number=police_clearance, id_number=id_number)
-    print(f"the res is {res}")
+    res = authenticate_kra_from_app(kra_pin=kra_pin, police_number=police_clearance, id_number=id_number,tax_payer_name=tax_payer_name)
     return jsonify({"success": res})
 
 @document_bp.route('/extract_kra_pin', methods=['POST'])
@@ -33,7 +33,7 @@ def extract_kra_pin():
         print(f"the extracted kra pin is {extracted_details['PIN']}")
         return jsonify({
             "kraPin": extracted_details["PIN"],
-            "taxpayerName": extracted_details["Taxpayer Name"],
+            "taxPayerName": extracted_details["Taxpayer Name"],
             "email": extracted_details["Email Address"]
         })
     finally:
@@ -52,9 +52,10 @@ def extract_police_clearance():
             return jsonify({"error": extracted_details["error"]})
 
         ref_no = extracted_details["Reference Number"]
+        user_name = extracted_details["Name"]
         id_no = extracted_details["ID Number"]
         print(f"the extracted police clearance is {ref_no}")
-        return jsonify({"refNo": ref_no, "idNo": id_no})
+        return jsonify({"refNo": ref_no, "idNo": id_no, "name": user_name})
     finally:
         if os.path.exists(file_path):
             os.remove(file_path)
@@ -66,8 +67,8 @@ def get_kyc():
         'id': payment.id,
         'reference_code': payment.reference_code,
         'phone_number': payment.phone_number,
-        'user_name': UserService.get_user_by_id(user_id=payment.user_id).username,
-        'time_paid': payment.time_paid.isoformat() if payment.time_paid else None
+        'user_name': getattr(UserService.get_user_by_id(user_id=payment.user_id), "username", "") if payment.user_id else "",
+        'time_paid': payment.time_paid.isoformat() if payment.time_paid else ""
     } for payment in payments])
 
 @document_bp.route('/test', methods=['GET'])
